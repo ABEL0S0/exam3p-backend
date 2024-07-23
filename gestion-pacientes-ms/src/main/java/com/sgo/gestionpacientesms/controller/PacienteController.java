@@ -40,7 +40,7 @@ public class PacienteController {
         pacienteRepository.delete(paciente);
     }
 
-    @PostMapping("/update")
+    @PutMapping("/update")
     @ResponseStatus(HttpStatus.OK)
     public void updatePaciente(@RequestBody PacienteEntity paciente){
         pacienteRepository.save(paciente);
