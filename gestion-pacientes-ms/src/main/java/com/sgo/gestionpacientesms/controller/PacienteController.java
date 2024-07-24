@@ -4,6 +4,7 @@ import com.sgo.gestionpacientesms.entity.PacienteEntity;
 import com.sgo.gestionpacientesms.repository.PacienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,8 +42,12 @@ public class PacienteController {
     }
 
     @PutMapping("/update")
-    @ResponseStatus(HttpStatus.OK)
-    public void updatePaciente(@RequestBody PacienteEntity paciente){
-        pacienteRepository.save(paciente);
+    public ResponseEntity<Void> updatePaciente(@RequestBody PacienteEntity paciente){
+        if (pacienteRepository.existsById(paciente.getId())) {
+            pacienteRepository.save(paciente);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
