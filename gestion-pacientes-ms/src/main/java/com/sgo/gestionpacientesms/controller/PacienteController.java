@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/pacientes")
 public class PacienteController {
@@ -17,35 +18,44 @@ public class PacienteController {
     @Autowired
     private PacienteRepository pacienteRepository;
 
-    @GetMapping("/lista")
-    @ResponseStatus(HttpStatus.OK)
+    @GetMapping("/list")
     public List<PacienteEntity> getAllPacientes(){
         return pacienteRepository.findAll();
     }
 
     @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
     public Optional<PacienteEntity> getPacienteById(@PathVariable long id){
         return pacienteRepository.findById(id);
     }
 
     @PostMapping("/save")
-    @ResponseStatus(HttpStatus.OK)
     public void createPaciente(@RequestBody PacienteEntity paciente){
         pacienteRepository.save(paciente);
     }
 
-    @DeleteMapping("/del")
-    @ResponseStatus(HttpStatus.OK)
-    public void deletePaciente(@RequestBody PacienteEntity paciente){
-        pacienteRepository.delete(paciente);
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deletePacienteById(@PathVariable long id){
+        if (pacienteRepository.existsById(id)) {
+            pacienteRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @PutMapping("/update")
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Void> updatePaciente(@RequestBody PacienteEntity paciente){
-        if (pacienteRepository.existsById(paciente.getId())) {
-            pacienteRepository.save(paciente);
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Void> updatePacienteById(@PathVariable long id, @RequestBody PacienteEntity paciente){
+        Optional<PacienteEntity> existingPaciente = pacienteRepository.findById(id);
+        if (existingPaciente.isPresent()) {
+            PacienteEntity updatedPaciente = existingPaciente.get();
+            updatedPaciente.setNombre(paciente.getNombre());
+            updatedPaciente.setApellido(paciente.getApellido());
+            updatedPaciente.setId(paciente.getId());
+            updatedPaciente.setTelefono(paciente.getTelefono());
+            updatedPaciente.setCorreo(paciente.getCorreo());
+            updatedPaciente.setFecha_nacimiento(paciente.getFecha_nacimiento());
+            updatedPaciente.setGenero(paciente.getGenero());
+            pacienteRepository.save(updatedPaciente);
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.notFound().build();
