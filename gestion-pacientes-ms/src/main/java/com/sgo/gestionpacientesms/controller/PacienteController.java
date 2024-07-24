@@ -42,6 +42,7 @@ public class PacienteController {
     }
 
     @PutMapping("/update")
+    @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Void> updatePaciente(@RequestBody PacienteEntity paciente){
         if (pacienteRepository.existsById(paciente.getId())) {
             pacienteRepository.save(paciente);
