@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/odontograma")
 public class OdontogramaController {
@@ -58,6 +59,31 @@ public class OdontogramaController {
         repository.save(odontograma);
     }
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Void> updateOdontograma(@PathVariable Long id, @RequestBody Odontograma odontograma) {
+        Optional<Odontograma> existingOdontograma = repository.findById(id);
+        if (existingOdontograma.isPresent()) {
+            Odontograma updateOdontograma = existingOdontograma.get();
+            updateOdontograma.setPacienteId(odontograma.getPacienteId());
+            updateOdontograma.setId(odontograma.getId());
+            updateOdontograma.setDescripcion(odontograma.getDescripcion());
+            repository.save(updateOdontograma);
+            return ResponseEntity.ok().build();
+        }else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteOdontogramaById(@PathVariable long id){
+        if (repository.existsById(id)) {
+            repository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @Operation(summary = "Subir imagen para odontograma")
     @PostMapping("/{id}/subirImg")
     @ApiResponses(value = {
@@ -78,7 +104,7 @@ public class OdontogramaController {
 
             String fileName = id + "_" + image.getOriginalFilename();
             Path filePath = subirPath.resolve(fileName);
-            Files.copy(image.getInputStream(), filePath); // Usamos Files.move para mover el archivo correctamente
+            Files.copy(image.getInputStream(), filePath);
 
             Odontograma odontograma = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -89,11 +115,9 @@ public class OdontogramaController {
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al subir la imagen");
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("No se ha proporcionado ninguna imagen");
         }
     }
+
 
     @Operation(summary = "Obtener imagen del odontograma")
     @GetMapping("/{id}/imagen")
@@ -101,7 +125,15 @@ public class OdontogramaController {
         Odontograma odontograma = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+        if (odontograma.getImg_url() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
         Path imagePath = Paths.get(odontograma.getImg_url());
+        if (!Files.exists(imagePath)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
         try {
             Resource resource = new UrlResource(imagePath.toUri());
             if (resource.exists() && resource.isReadable()) {
@@ -118,5 +150,49 @@ public class OdontogramaController {
         }
     }
 
+
+    @Operation(summary = "Actualizar imagen del odontograma")
+    @PutMapping("/{id}/actualizarImg")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Imagen actualizada con éxito",
+                    content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "400", description = "No se ha proporcionado ninguna imagen"),
+            @ApiResponse(responseCode = "404", description = "Odontograma no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error al actualizar la imagen")
+    })
+    public ResponseEntity<String> updateImageById(@PathVariable("id") Long id, @RequestParam("image") MultipartFile image) {
+        if (image == null) {
+            return ResponseEntity.badRequest().body("No se ha proporcionado ninguna imagen");
+        }
+        try {
+            Odontograma odontograma = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Odontograma no encontrado"));
+
+            Path oldImagePath = Paths.get(odontograma.getImg_url());
+            if (Files.exists(oldImagePath)) {
+                Files.delete(oldImagePath);
+            }
+
+            Path subirPath = Paths.get(subida_dir);
+            if (!Files.exists(subirPath)) {
+                Files.createDirectories(subirPath);
+            }
+
+            String fileName = id + "_" + image.getOriginalFilename();
+            Path filePath = subirPath.resolve(fileName);
+            Files.copy(image.getInputStream(), filePath);
+
+            odontograma.setImg_url(filePath.toString());
+            repository.save(odontograma);
+
+            return ResponseEntity.ok().body("Imagen actualizada con éxito: " + fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al actualizar la imagen");
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Odontograma no encontrado");
+        }
+    }
 
 }

@@ -18,4 +18,5 @@ public class Odontograma {
     private String img_url;
     @Column(name = "paciente_id")
     private Long pacienteId;
+    private String descripcion;
 }

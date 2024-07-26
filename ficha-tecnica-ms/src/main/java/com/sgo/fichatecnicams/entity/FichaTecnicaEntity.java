@@ -25,6 +25,5 @@ public class FichaTecnicaEntity {
     private Long presupuesto;
     private Long pago;
     private Date fecha_pago;
-    @OneToMany(mappedBy = "fichaTecnica", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TratamientoEntity> tratamientos;
+    private String tratamientos;
 }
